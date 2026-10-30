@@ -44,9 +44,21 @@ async function start(){if(loading)return;loading=true;box.style.display='block';
  const response=await fetch(SUPABASE_URL+'/functions/v1/mentoria-license-status',{method:'POST',headers:{authorization:'Bearer '+data.session.access_token,apikey:PUBLISHABLE_KEY,'content-type':'application/json'},cache:'no-store'});
  const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||'Falha ao consultar a licença.');
  if(!result.active||!result.contentUrl){message('Licença não encontrada para esta conta','O pagamento precisa estar aprovado e o e-mail Google deve corresponder ao da compra. Experimente a demonstração ou verifique novamente.');return;}
- const docResponse=await fetch(result.contentUrl,{cache:'no-store'});
- if(!docResponse.ok)throw new Error('O conteúdo premium ainda não está disponível ('+docResponse.status+').');
- const html=await docResponse.text();if(!/^\s*<!doctype html/i.test(html))throw new Error('Arquivo premium inválido.');
+ // Show license confirmation immediately; downloading the ~18 MB educational library is a separate phase.
+ box.querySelector('h1').textContent='Licença ativa. Carregando biblioteca...';
+ box.querySelector('p').textContent='Seu acesso foi confirmado. O conteúdo premium tem cerca de 18 MB e pode levar alguns segundos no celular.';
+ info.style.display='block';
+ info.textContent='Licença confirmada • válida até '+new Date(result.expiresAt).toLocaleDateString('pt-BR');
+ const ctl=new AbortController(), tm=setTimeout(()=>ctl.abort(),60000);
+ let docResponse,html;
+ try{
+   docResponse=await fetch(result.contentUrl,{cache:'no-store',signal:ctl.signal});
+   if(!docResponse.ok)throw new Error('O conteúdo premium ainda não está disponível ('+docResponse.status+').');
+   html=await docResponse.text();
+ }finally{clearTimeout(tm);}
+ if(!/^\s*<!doctype html/i.test(html))throw new Error('Arquivo premium inválido.');
+ box.querySelector('h1').textContent='Biblioteca recebida. Preparando interface...';
+ box.querySelector('p').textContent='O conteúdo foi baixado. A plataforma está organizando as atividades para exibição.';
  frame.addEventListener('load',()=>{box.style.display='none';frame.classList.add('visible');info.textContent='Licença validada • acesso até '+new Date(result.expiresAt).toLocaleDateString('pt-BR');},{once:true});
  frame.srcdoc=html;
  }catch(e){message('Não foi possível abrir os estudos',(e.message||'Falha inesperada')+'. A biblioteca requer internet para validar a licença.');}
