@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#081a2d"><meta name="robots" content="noindex,nofollow"><title>Ambiente de Estudos • Mentoria Extraordinária</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#f0f6ff;background:#071424}*{box-sizing:border-box}
+body{margin:0;background:#071424;min-height:100dvh;color:#eaf2fc}
+a,button{font:inherit}a{color:#ffd991}button{cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #ffda83;outline-offset:3px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:65px;padding:10px clamp(13px,3vw,26px);border-bottom:1px solid #39556e;background:#0c2036;position:relative;z-index:2}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}.mark{background:linear-gradient(145deg,#f7d89b,#ad7d30);color:#122338;border-radius:12px;display:grid;place-items:center;width:43px;height:43px;font-size:27px;font-weight:900;flex-shrink:0}.brand strong{font-size:15px;line-height:1.2;display:block}.brand small{display:block;font-size:11px;color:#d9b97f}
+.back{border:1px solid #b38c4c;padding:9px 12px;min-height:42px;border-radius:10px;text-decoration:none;background:#152c43;white-space:nowrap;font-size:13px;font-weight:700}
+#msg{margin:0;min-height:0}.notice{max-width:720px;margin:10vh auto 0;padding:26px;border:1px solid #3c6980;border-radius:18px;background:#112b41;line-height:1.5}.notice h1{margin:0 0 12px;font-size:clamp(21px,5vw,29px)}.notice p{color:#ccdfeb}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.btn{border-radius:11px;border:1px solid #b58b4b;padding:11px 15px;min-height:46px;background:#15334e;color:#f8dba3;font-weight:750}.btn.gold{color:#10243a;background:linear-gradient(120deg,#ffe1a1,#bf8a3d)}
+.loading{display:flex;align-items:center;gap:12px}.spin{width:23px;height:23px;border:3px solid #47617b;border-top-color:#ffd591;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.frame{height:calc(100dvh - 65px);width:100%;border:0;background:#fff;display:none}.frame.visible{display:block}#info{font-size:13px;color:#e4d3b7;padding:7px 13px;background:#182f42;display:none}
+@media(max-width:460px){.head{padding:9px}.brand strong{font-size:12px}.brand small{font-size:10px}.mark{width:35px;height:35px;font-size:23px}.back{font-size:12px;padding:9px}.notice{margin:5vh 14px 0;padding:19px}.frame{height:calc(100dvh - 60px)}}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head><body>
+<header class="head"><div class="brand"><div class="mark" aria-hidden="true">M</div><div><strong>Mentoria Extraordinária</strong><small>Ambiente premium de estudos • 6 meses</small></div></div><a class="back" href="./">Voltar ao portal</a></header>
+<div id="info" role="status"></div>
+<main id="msg" class="notice" aria-live="polite"><div class="loading"><span class="spin" aria-hidden="true"></span><div><h1>Preparando seu ambiente de estudos</h1><p>Validando sua sessão e consultando a licença no servidor...</p></div></div></main>
+<iframe class="frame" id="studyFrame" title="Biblioteca Premium da Mentoria Extraordinária" referrerpolicy="no-referrer"></iframe>
+<script type="module">
+const SUPABASE_URL='https://piagfpnjiwpngbikkkfp.supabase.co', PUBLISHABLE_KEY='sb_publishable_G7GV4Yox1KkbjZtjnYxFAQ_kzo9V05a', REDIRECT='https://onsitelimavirtual.github.io/Mentoria-Extraordinaria/';
+const info=document.getElementById('info'),box=document.getElementById('msg'),frame=document.getElementById('studyFrame');
+let client=null,loading=false;
+const portalUrl=new URL('./',location.href).href;
+function message(title,text,actions=''){
+ box.style.display='block';frame.classList.remove('visible');
+ box.innerHTML='<h1>'+title+'</h1><p id="detail"></p><div class="actions" id="actions"></div>';
+ document.getElementById('detail').textContent=text;
+ const actionsEl=document.getElementById('actions');
+ const b=document.createElement('button');b.className='btn gold';b.textContent='Verificar novamente';b.addEventListener('click',start);actionsEl.appendChild(b);
+ const a=document.createElement('a');a.className='btn';a.href=portalUrl;a.textContent='Voltar ou usar a demonstração';actionsEl.appendChild(a);
+ if(actions==='login'){b.textContent='Entrar com Google';b.removeEventListener('click',start);b.addEventListener('click',login);}
+}
+async function login(){try{sessionStorage.setItem('mentoria_retorno_kiwify_ate',String(Date.now()+15*60*1000))}catch{}
+ if(!client)return;const{error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:REDIRECT}});if(error)message('Login indisponível',error.message,'login');}
+async function start(){if(loading)return;loading=true;box.style.display='block';frame.classList.remove('visible');
+ try{
+ if(!/^https:\/\//.test(location.href))throw new Error('Abra este endereço publicado no GitHub Pages, com HTTPS.');
+ if(!client){const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/+esm');client=createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}
+ const{data,error}=await client.auth.getSession();if(error)throw error;
+ if(!data.session){message('Entre para acessar seus estudos','Use a mesma conta Google informada na compra para validar a licença de 180 dias.','login');return;}
+ const response=await fetch(SUPABASE_URL+'/functions/v1/mentoria-license-status',{method:'POST',headers:{authorization:'Bearer '+data.session.access_token,apikey:PUBLISHABLE_KEY,'content-type':'application/json'},cache:'no-store'});
+ const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||'Falha ao consultar a licença.');
+ if(!result.active||!result.contentUrl){message('Licença não encontrada para esta conta','O pagamento precisa estar aprovado e o e-mail Google deve corresponder ao da compra. Experimente a demonstração ou verifique novamente.');return;}
+ const docResponse=await fetch(result.contentUrl,{cache:'no-store'});
+ if(!docResponse.ok)throw new Error('O conteúdo premium ainda não está disponível ('+docResponse.status+').');
+ const html=await docResponse.text();if(!/^\s*<!doctype html/i.test(html))throw new Error('Arquivo premium inválido.');
+ frame.addEventListener('load',()=>{box.style.display='none';frame.classList.add('visible');info.textContent='Licença validada • acesso até '+new Date(result.expiresAt).toLocaleDateString('pt-BR');},{once:true});
+ frame.srcdoc=html;
+ }catch(e){message('Não foi possível abrir os estudos',(e.message||'Falha inesperada')+'. A biblioteca requer internet para validar a licença.');}
+ finally{loading=false;}
+}
+start();
+</script></body></html>
